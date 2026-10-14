@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Strata Deck</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+
+<body>
+  <header>
+    <div class="brand">⬢ Strata <span>Deck</span></div>
+    <nav>
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="models">Models</button>
+      <button class="tab" data-tab="install">Install</button>
+      <button class="tab" data-tab="tuner">Tuner</button>
+      <button class="tab" data-tab="logs">Logs</button>
+    </nav>
+    <div id="engine-pill" class="pill off">engine: —</div>
+  </header>
+
+  <main>
+    <!-- ============================ DASHBOARD ============================ -->
+    <section id="tab-dashboard" class="tabpage active">
+      <div class="power-row">
+        <button id="btn-power" class="power off" title="Start / stop the engine">⏻</button>
+        <div id="power-label" class="power-label">engine stopped</div>
+        <button id="btn-restart" class="btn ghost">Restart</button>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h3>Engine</h3>
+          <div id="eng-info" class="kv">—</div>
+        </div>
+        <div class="card">
+          <h3>GPU</h3>
+          <div id="gpu-info" class="kv">—</div>
+          <div class="bar">
+            <div id="gpu-bar" class="bar-fill"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>RAM</h3>
+          <div class="kv"><b>DDR5 6000</b></div>
+          <div id="ram-info" class="kv">—</div>
+          <div class="bar">
+            <div id="ram-bar" class="bar-fill"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Model disk</h3>
+          <div id="disk-info" class="kv">—</div>
+          <div class="bar">
+            <div id="disk-bar" class="bar-fill"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card wide">
+        <h3>Last engine timings</h3>
+        <pre id="timings">—</pre>
+      </div>
+    </section>
+
+    <!-- ============================ MODELS ============================ -->
+    <section id="tab-models" class="tabpage">
+      <h2>Available models</h2>
+      <div id="models-grid" class="grid"></div>
+    </section>
+
+    <!-- ============================ INSTALL ============================ -->
+    <section id="tab-install" class="tabpage">
+      <div class="card wide">
+        <h3>Install a model</h3>
+        <p class="muted">Runs Strata's own setup.py (pinned HF revisions, resumable — cancel and re-run to continue a
+          download).</p>
+        <form id="install-form" class="form">
+          <label>Model
+            <select id="inst-model"></select>
+          </label>
+          <label>Family
+            <select id="inst-family">
+              <option value="qwen">qwen</option>
+              <option value="swift">swift</option>
+              <option value="coder">coder</option>
+              <option value="unsloth">unsloth</option>
+            </select>
+          </label>
+          <label>Context (optional)
+            <input id="inst-context" type="number" placeholder="e.g. 65536">
+          </label>
+          <label>Vision
+            <select id="inst-vision">
+              <option>no</option>
+              <option>yes</option>
+            </select>
+          </label>
+          <button class="btn primary" type="submit">Install</button>
+        </form>
+        <pre id="install-log" class="log hidden"></pre>
+      </div>
+    </section>
+
+    <!-- ============================ TUNER ============================ -->
+    <section id="tab-tuner" class="tabpage">
+      <div class="card wide">
+        <h3>Launch config</h3>
+        <p class="muted">Edits strata-&lt;model&gt;.json (a .bak is written first). Restart the engine to apply.</p>
+        <label>Model <select id="tune-model"></select></label>
+        <div class="form">
+          <label>Port <select id="tune-port"></select></label>
+          <label>Host <input id="tune-host"></label>
+          <label>Max context <select id="tune-ctx">
+              <option value="8192">8K</option>
+              <option value="32768">32K</option>
+              <option value="65536">64K</option>
+              <option value="131072">128K</option>
+              <option value="262144">256K</option>
+              <option value="524288">512K</option>
+              <option value="1048576">1M</option>
+            </select></label>
+          <label>KV <select id="tune-kv">
+              <option value="int4">int4</option>
+              <option value="int8">int8</option>
+            </select></label>
+        </div>
+        <label>Engine args (one per line)
+          <textarea id="tune-args" rows="14" spellcheck="false"></textarea>
+        </label>
+        <button id="btn-save-config" class="btn primary">Save</button>
+        <span id="tune-msg" class="muted"></span>
+      </div>
+    </section>
+
+    <!-- ============================ LOGS ============================ -->
+    <section id="tab-logs" class="tabpage">
+      <label>Model <select id="log-model"></select></label>
+      <button id="btn-refresh-logs" class="btn ghost">Refresh</button>
+      <pre id="log-view" class="log"></pre>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="/js/app.js"></script>
+</body>
+
+</html>
