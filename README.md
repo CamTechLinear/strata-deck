@@ -8,8 +8,9 @@ Built for self-hosted Strata boxes that serve real workloads (including live AI
 agents) — the Deck is designed so an operator can never accidentally interrupt a
 running session.
 
-![Strata Deck dashboard](docs/screenshot.png)
-<!-- screenshot placeholder: add docs/screenshot.png before publishing -->
+![Strata Deck dashboard](docs/main-dashboard.png)
+![Models tab](docs/models-tab.png)
+![Tuner tab](docs/tuner-tab.png)
 
 ## Features
 
