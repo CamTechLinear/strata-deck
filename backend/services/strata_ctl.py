@@ -178,6 +178,15 @@ def engine_status() -> dict:
             pass
     url = f"http://127.0.0.1:{port}/v1/status"
     info["port"] = port
+    # is the engine's built-in API monitor enabled? (off by default;
+    # /api-monitor is 404 when off, 200 when on)
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api-monitor", timeout=3) as r:
+            info["api_monitor"] = (r.status == 200)
+    except urllib.error.HTTPError as e:
+        info["api_monitor"] = (e.code != 404)
+    except Exception:
+        info["api_monitor"] = False
     try:
         req = urllib.request.Request(url)
         if key:

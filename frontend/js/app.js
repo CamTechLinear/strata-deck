@@ -92,12 +92,15 @@ async function refreshStatus() {
     // Strata's built-in chat + monitor live on the engine's own port;
     // use the browser's host so links work from any machine on the network
     const engBase = `http://${location.hostname}:${st.port || 8080}`;
-    for (const [sel, path] of [["#link-chat", "/"], ["#link-monitor", "/monitor.html"]]) {
+    for (const [sel, path] of [["#link-chat", "/"], ["#link-monitor", "/api-monitor"]]) {
       const a = $(sel);
       a.href = engBase + path;
-      a.style.opacity = st.running ? "1" : ".4";
-      a.title = st.running ? a.title.replace(" — engine stopped", "")
-                           : a.title + " — engine stopped";
+      const monitorOff = sel === "#link-monitor" && st.api_monitor === false;
+      a.style.opacity = (st.running && !monitorOff) ? "1" : ".4";
+      a.title = monitorOff
+        ? "API monitor is off — enable \"api_monitor\": true in the model config"
+        : a.title.replace(" — engine stopped", "");
+      if (!st.running) a.title += " — engine stopped";
     }
 
     let info = "—";
