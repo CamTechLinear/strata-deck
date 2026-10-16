@@ -177,6 +177,7 @@ def engine_status() -> dict:
         except Exception:
             pass
     url = f"http://127.0.0.1:{port}/v1/status"
+    info["port"] = port
     try:
         req = urllib.request.Request(url)
         if key:

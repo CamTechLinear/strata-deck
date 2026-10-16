@@ -89,6 +89,17 @@ async function refreshStatus() {
       ? `running — ${st.process.model} (pid ${st.process.pid})`
       : "engine stopped";
 
+    // Strata's built-in chat + monitor live on the engine's own port;
+    // use the browser's host so links work from any machine on the network
+    const engBase = `http://${location.hostname}:${st.port || 8080}`;
+    for (const [sel, path] of [["#link-chat", "/"], ["#link-monitor", "/monitor.html"]]) {
+      const a = $(sel);
+      a.href = engBase + path;
+      a.style.opacity = st.running ? "1" : ".4";
+      a.title = st.running ? a.title.replace(" — engine stopped", "")
+                           : a.title + " — engine stopped";
+    }
+
     let info = "—";
     if (st.api) {
       const a = st.api;

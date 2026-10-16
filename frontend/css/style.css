@@ -132,3 +132,6 @@ h2 { font-size: 16px; color: var(--muted); text-transform: uppercase;
   padding: 12px 20px; border-radius: 10px; z-index: 100;
 }
 .toast.err { border-color: var(--red); color: var(--red); }
+
+.power-links { margin-left: auto; display: flex; gap: 8px; }
+.power-links a.btn { text-decoration: none; }
