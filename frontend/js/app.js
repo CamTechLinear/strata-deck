@@ -20,7 +20,7 @@ function toast(msg, err = false) {
   setTimeout(() => t.classList.add("hidden"), 4000);
 }
 
-const fmtGB = (b) => (b / 1e9).toFixed(0) + " GB";
+const fmtGB = (b) => (b / 2 ** 30).toFixed(1) + " GiB";
 const fmt = (n) => (n == null ? "—" : n);
 const fmtCtx = (n) => {
   if (n == null) return "—";
