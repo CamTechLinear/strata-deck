@@ -118,8 +118,19 @@ async function refreshStatus() {
       setBar("#gpu-bar", (g.mem_used_mib / g.mem_total_mib) * 100);
     }
     if (sys.ram) {
-      $("#ram-info").innerHTML = `${fmtGB(sys.ram.used)} / ${fmtGB(sys.ram.total)}`;
-      setBar("#ram-bar", (sys.ram.used / sys.ram.total) * 100);
+      if (sys.ram.model != null) {
+        // attribution: model (engine+proxy RSS) vs rest of system vs installed
+        $("#ram-info").innerHTML =
+          `<b>${fmtGB(sys.ram.model)}</b> model · <b>${fmtGB(sys.ram.system)}</b> system` +
+          `<br>${fmtGB(sys.ram.used)} used / ${fmtGB(sys.ram.total)} installed`;
+        setBar("#ram-bar", (sys.ram.used / sys.ram.total) * 100);
+        const rb = $("#ram-bar");
+        rb.style.setProperty("--model-pct", (sys.ram.model / sys.ram.total) * 100 + "%");
+        rb.classList.add("stacked");
+      } else {
+        $("#ram-info").innerHTML = `${fmtGB(sys.ram.used)} / ${fmtGB(sys.ram.total)}`;
+        setBar("#ram-bar", (sys.ram.used / sys.ram.total) * 100);
+      }
     }
     const disk = sys.disk_data || sys.disk_root;
     if (disk) {

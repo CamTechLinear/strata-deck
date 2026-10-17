@@ -204,6 +204,21 @@ def system_stats() -> dict:
         free = subprocess.run(["free", "-b"], capture_output=True,
                               text=True).stdout.splitlines()[1].split()
         stats["ram"] = {"total": int(free[1]), "used": int(free[2])}
+        # attribute RAM: engine + proxy RSS vs the rest of the system
+        model_bytes = 0
+        for pat in ("engine/strata --serve", "serve/server.py"):
+            p = subprocess.run(["pgrep", "-f", pat], capture_output=True,
+                               text=True).stdout.split()
+            for pid in p[:1]:
+                try:
+                    for line in Path(f"/proc/{pid}/status").read_text().splitlines():
+                        if line.startswith("VmRSS:"):
+                            model_bytes += int(line.split()[1]) * 1024
+                except Exception:
+                    pass
+        if model_bytes:
+            stats["ram"]["model"] = model_bytes
+            stats["ram"]["system"] = max(0, int(free[2]) - model_bytes)
     except Exception:
         pass
     try:
