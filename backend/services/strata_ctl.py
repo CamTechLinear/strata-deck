@@ -246,7 +246,7 @@ def system_stats() -> dict:
                 rated = {m["rated_speed"] for m in dimms}
                 summary = " ".join(types) + " " + " ".join(speeds) + f" ×{len(dimms)}"
                 if rated != speeds:
-                    summary += f" (rated {' '.join(rated)})"
+                    summary += f" ({' '.join(rated)})"
                 _RAM_HW_CACHE.update(done=True, at=time.time(), summary=summary.strip(), dimms=dimms)
             else:
                 _RAM_HW_CACHE.update(done=True, at=time.time())
