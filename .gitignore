@@ -4,3 +4,4 @@ __pycache__/
 deck-audit.log
 *.bak
 .DS_Store
+screenshots/
