@@ -21,6 +21,7 @@ function toast(msg, err = false) {
 }
 
 const fmtGB = (b) => (b / 2 ** 30).toFixed(1) + " GiB";
+const hwEsc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const fmt = (n) => (n == null ? "—" : n);
 const fmtCtx = (n) => {
   if (n == null) return "—";
@@ -116,6 +117,12 @@ async function refreshStatus() {
       $("#gpu-info").innerHTML =
         `<b>${g.name}</b><br>${g.mem_used_mib} / ${g.mem_total_mib} MiB · util ${g.util_pct}%`;
       setBar("#gpu-bar", (g.mem_used_mib / g.mem_total_mib) * 100);
+    }
+    if (sys.ram_hw) {
+      const hw = $("#ram-hw");
+      hw.innerHTML = `<b>${hwEsc(sys.ram_hw.summary)}</b>`;
+      hw.title = sys.ram_hw.dimms.map((d) =>
+        `${d.locator}: ${d.size} @ ${d.speed}${d.vendor ? " · " + d.vendor : ""}${d.part ? " · " + d.part : ""}`).join("\n");
     }
     if (sys.ram) {
       if (sys.ram.model != null) {

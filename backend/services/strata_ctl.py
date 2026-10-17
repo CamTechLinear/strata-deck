@@ -124,6 +124,11 @@ def recent_consumers(ports: tuple[int, ...] = (8080, 8081)) -> list[dict]:
 AUDIT = Path(os.environ.get("DECK_AUDIT",
               str(Path.home() / "strata-deck" / "deck-audit.log")))
 
+# SMBIOS RAM info: cached, but re-read every 10 min so a RAM upgrade
+# shows up without restarting the deck.
+_RAM_HW_CACHE: dict = {}
+_RAM_HW_TTL = 600
+
 
 def audit(action: str, caller: str = "", decision: str = "", **kw):
     """Append-only trail: who did what, what we saw, what we decided."""
@@ -200,6 +205,56 @@ def system_stats() -> dict:
         stats["disk_data"] = {"path": data_dir, "used": st2.used,
                               "free": st2.free, "total": st2.total}
     stats["data_dir"] = data_dir
+    # --- RAM hardware truth from SMBIOS (needs one narrow sudoers grant;
+    # falls back silently to nothing when unavailable) ---
+    if not _RAM_HW_CACHE.get("done") or (
+            _RAM_HW_CACHE.get("at") and time.time() - _RAM_HW_CACHE["at"] > _RAM_HW_TTL):
+        _RAM_HW_CACHE.clear()
+        try:
+            d = subprocess.run(["sudo", "-n", "dmidecode", "-t", "memory"],
+                               capture_output=True, text=True, timeout=10)
+            dimms = []
+            for block in d.stdout.split("Memory Device")[1:]:
+                fields: dict[str, list[str]] = {}
+                for line in block.splitlines():
+                    if ":" in line:
+                        k, v = line.split(":", 1)
+                        fields.setdefault(k.strip(), []).append(v.strip())
+                # last Size = the Memory Device's own field (first may be
+                # the Physical Memory Array header bleeding in)
+                size = (fields.get("Size") or [""])[-1]
+                if size and not size.startswith("No Module"):
+                    loc = (fields.get("Locator") or ["?"])[-1]
+                    bank = (fields.get("Bank Locator") or [""])[-1]
+                    if bank:                       # board reports "DIMM 1" twice;
+                        loc = f"{bank} {loc}"      # the channel lives in Bank Locator
+                    typ = (fields.get("Type") or ["?"])[-1]
+                    rated = (fields.get("Speed") or ["?"])[-1]
+                    conf = (fields.get("Configured Memory Speed") or [rated])[-1]
+                    dimms.append({
+                        "locator": loc,
+                        "size": size,
+                        "speed": conf,
+                        "rated_speed": rated,
+                        "part": (fields.get("Part Number") or [""])[-1].strip(),
+                        "vendor": (fields.get("Manufacturer") or [""])[-1],
+                        "type": typ,
+                    })
+            if dimms:
+                types = {m["type"] for m in dimms}
+                speeds = {m["speed"] for m in dimms}
+                rated = {m["rated_speed"] for m in dimms}
+                summary = " ".join(types) + " " + " ".join(speeds) + f" ×{len(dimms)}"
+                if rated != speeds:
+                    summary += f" (rated {' '.join(rated)})"
+                _RAM_HW_CACHE.update(done=True, at=time.time(), summary=summary.strip(), dimms=dimms)
+            else:
+                _RAM_HW_CACHE.update(done=True, at=time.time())
+        except Exception:
+            _RAM_HW_CACHE.update(done=True, at=time.time())
+    if _RAM_HW_CACHE.get("summary"):
+        stats["ram_hw"] = {"summary": _RAM_HW_CACHE["summary"],
+                           "dimms": _RAM_HW_CACHE["dimms"]}
     try:
         free = subprocess.run(["free", "-b"], capture_output=True,
                               text=True).stdout.splitlines()[1].split()
