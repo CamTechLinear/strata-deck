@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Strata Deck</title>
-  <link rel="stylesheet" href="/assets/style.css?v=3">
+  <link rel="stylesheet" href="/assets/style.css?v=4">
 </head>
 
 <body>
@@ -111,32 +111,37 @@
 
     <!-- ============================ TUNER ============================ -->
     <section id="tab-tuner" class="tabpage">
-      <div class="card wide">
-        <h3>Launch config</h3>
-        <p class="muted">Edits strata-&lt;model&gt;.json (a .bak is written first). Restart the engine to apply.</p>
-        <label>Model <select id="tune-model"></select></label>
-        <div class="form">
-          <label>Port <select id="tune-port"></select></label>
-          <label>Host <input id="tune-host"></label>
-          <label>Max context <select id="tune-ctx">
-              <option value="8192">8K</option>
-              <option value="32768">32K</option>
-              <option value="65536">64K</option>
-              <option value="131072">128K</option>
-              <option value="262144">256K</option>
-              <option value="524288">512K</option>
-              <option value="1048576">1M</option>
-            </select></label>
-          <label>KV <select id="tune-kv">
-              <option value="int4">int4</option>
-              <option value="int8">int8</option>
-            </select></label>
+      <div class="tuner-grid">
+        <div class="card">
+          <h3>Launch config</h3>
+          <p class="muted">Edits strata-&lt;model&gt;.json (a .bak is written first). Restart the engine to apply.</p>
+          <label>Model <select id="tune-model"></select></label>
+          <div class="form">
+            <label>Port <select id="tune-port"></select></label>
+            <label>Host <input id="tune-host"></label>
+            <label>Max context <select id="tune-ctx">
+                <option value="8192">8K</option>
+                <option value="32768">32K</option>
+                <option value="65536">64K</option>
+                <option value="131072">128K</option>
+                <option value="262144">256K</option>
+                <option value="524288">512K</option>
+                <option value="1048576">1M</option>
+              </select></label>
+            <label>KV <select id="tune-kv">
+                <option value="int4">int4</option>
+                <option value="int8">int8</option>
+              </select></label>
+          </div>
+          <button id="btn-save-config" class="btn primary">Save</button>
+          <span id="tune-msg" class="muted"></span>
         </div>
-        <label>Engine args (one per line)
-          <textarea id="tune-args" rows="14" spellcheck="false"></textarea>
-        </label>
-        <button id="btn-save-config" class="btn primary">Save</button>
-        <span id="tune-msg" class="muted"></span>
+        <div class="card">
+          <h3>Engine args</h3>
+          <label class="muted">one per line
+            <textarea id="tune-args" rows="22" spellcheck="false"></textarea>
+          </label>
+        </div>
       </div>
     </section>
 

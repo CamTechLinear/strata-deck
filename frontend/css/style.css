@@ -386,3 +386,14 @@ h2 {
   text-decoration: none;
 }
 .bar-fill.stacked { background: linear-gradient(90deg, var(--accent) 0, var(--accent) var(--model-pct, 0%), #8a6d3b var(--model-pct, 0%), #8a6d3b 100%); }
+
+/* Tuner tab: two cards side by side, 50/50 */
+.tuner-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.tuner-grid textarea { width: 100%; }
+@media (max-width: 900px) {
+  .tuner-grid { grid-template-columns: 1fr; }  /* stack on narrow screens */
+}
