@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Strata Deck</title>
-  <link rel="stylesheet" href="/assets/style.css?v=5">
+  <link rel="stylesheet" href="/assets/style.css?v=6">
 </head>
 
 <body>
@@ -147,8 +147,10 @@
 
     <!-- ============================ LOGS ============================ -->
     <section id="tab-logs" class="tabpage">
-      <label>Model <select id="log-model"></select></label>
-      <button id="btn-refresh-logs" class="btn ghost">Refresh</button>
+      <div class="logs-toolbar">
+        <label>Model <select id="log-model"></select></label>
+        <button id="btn-refresh-logs" class="btn ghost">Refresh</button>
+      </div>
       <pre id="log-view" class="log"></pre>
     </section>
   </main>
