@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Strata Deck</title>
-  <link rel="stylesheet" href="/assets/style.css?v=6">
+  <link rel="stylesheet" href="/assets/style.css?v=7">
 </head>
 
 <body>
@@ -156,7 +156,19 @@
   </main>
 
   <div id="toast" class="toast hidden"></div>
-  <script src="/js/app.js?v=8"></script>
+
+  <!-- model About modal -->
+  <div id="about-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h4 id="about-title"></h4>
+        <button id="about-close" class="btn ghost">✕</button>
+      </div>
+      <div id="about-body"></div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=9"></script>
 </body>
 
 </html>

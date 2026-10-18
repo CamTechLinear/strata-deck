@@ -205,6 +205,7 @@ async function loadModels() {
   for (const c of m.installed) byKey[normKey(c.model)] = c;
 
   const cards = [];
+  const aboutText = {};   // model -> full about text, for the About modal
   // one card per installed config (variants get their own card:
   // iq3_xxs and swift-iq3_xxs render separately, UI stays balanced)
   const covered = new Set();
@@ -220,15 +221,19 @@ async function loadModels() {
       cat.experimental ? '<span class="badge amber">experimental</span>' : "",
       cat.vision ? '<span class="badge green">vision</span>' : "",
     ].join("") : "";
+    const about = (cat && cat.about) || c.model_name || "";
+    aboutText[c.model] = about;
     const staleList = c.stale
       ? `<div class="stale-list">${c.missing_paths.map((p) => `<div class="stale-path">${p.flag} → ${p.path}</div>`).join("")}</div>`
       : "";
     d.innerHTML = `<h4>${c.model} <span class="badge green">Installed</span>
         ${c.stale ? '<span class="badge red">⚠ stale paths</span>' : ""}</h4>
-      <div class="meta">${fmt((cat && cat.about) || c.model_name)}<br>port ${fmt(c.port)} · ctx ${fmtCtx(c.max_context)} · kv ${fmt(c.kv)}</div>
-      ${badges}${staleList}
-      <div style="margin-top:10px"><button class="btn ${c.stale ? "danger" : "primary"}" data-start="${c.model}" data-stale="${c.stale ? 1 : 0}">Start</button>
-      <button class="btn" data-tune="${c.model}">Configure</button></div>`;
+      <div class="badge-row">${badges}</div>
+      <div class="meta">port ${fmt(c.port)} · ctx ${fmtCtx(c.max_context)} · kv ${fmt(c.kv)}</div>
+      ${staleList}
+      <div class="mcard-actions"><button class="btn ${c.stale ? "danger" : "primary"}" data-start="${c.model}" data-stale="${c.stale ? 1 : 0}">Start</button>
+      <button class="btn" data-tune="${c.model}">Configure</button>
+      <button class="badge about" data-about="${c.model}" title="Read the full description">ℹ About</button></div>`;
     cards.push(d);
   }
   // catalog entries with no installed variant at all
@@ -236,20 +241,34 @@ async function loadModels() {
     if (covered.has(normKey(a.model))) continue;
     const d = document.createElement("div");
     d.className = "mcard";
+    aboutText[a.model] = a.about || "";
     d.innerHTML = `<h4>${a.model} <span class="badge">not installed</span></h4>
-      <div class="meta">${a.about || ""}</div>
+      <div class="badge-row">
       ${a.download_gb ? `<span class="badge">${a.download_gb} GB dl</span>` : ""}
       ${a.arena_gb ? `<span class="badge">${a.arena_gb} GB experts</span>` : ""}
       ${a.families.map((f) => `<span class="badge">${f}</span>`).join("")}
       ${a.experimental ? '<span class="badge amber">experimental</span>' : ""}
-      ${a.vision ? '<span class="badge green">vision</span>' : ""}
-      <div style="margin-top:10px"><button class="btn primary" data-install="${a.model}" data-family="${a.families[0] || "qwen"}">Install…</button></div>`;
+      ${a.vision ? '<span class="badge green">vision</span>' : ""}</div>
+      <div class="mcard-actions"><button class="btn primary" data-install="${a.model}" data-family="${a.families[0] || "qwen"}">Install…</button>
+      <button class="badge about" data-about="${a.model}" title="Read the full description">ℹ About</button></div>`;
     cards.push(d);
   }
   // installed first, then not-installed (Start button = installed marker)
   cards.sort((x, y) => (y.querySelector("[data-start]") ? 1 : 0) -
                        (x.querySelector("[data-start]") ? 1 : 0));
   cards.forEach((c) => g.appendChild(c));
+
+  g.querySelectorAll("[data-about]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const model = b.dataset.about;
+      $("#about-title").textContent = model;
+      $("#about-body").textContent = aboutText[model] || "(no description available)";
+      $("#about-modal").classList.remove("hidden");
+    }));
+  $("#about-close").addEventListener("click", () => $("#about-modal").classList.add("hidden"));
+  $("#about-modal").addEventListener("click", (e) => {
+    if (e.target.id === "about-modal") e.currentTarget.classList.add("hidden");
+  });
 
   g.querySelectorAll("[data-start]").forEach((b) =>
     b.addEventListener("click", async () => {
