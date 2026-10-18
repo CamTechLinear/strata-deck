@@ -8,6 +8,10 @@
 
 set -euo pipefail
 
+# --- Repository sources (single source of truth) ---
+STRATA_REPO="https://github.com/Niko1221/Strata.git"
+DECK_REPO="https://github.com/CamTechLinear/strata-deck.git"
+
 # --- Color Definitions ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -31,7 +35,7 @@ fi
 for cmd in git python3 ss g++ make sudo; do
     if ! command -v "$cmd" &> /dev/null; then
         echo -e "${RED}ERROR: Essential tool '$cmd' is missing.${NC}"
-        echo "Install prerequisites: sudo apt update && sudo apt install -y git python3 python3-venv iproute2 build-essential"
+        echo "Install prerequisites: sudo apt update && sudo apt install -y git python3 python3-venv python3-dev iproute2 build-essential"
         exit 1
     fi
 done
@@ -40,6 +44,13 @@ done
 PYTHON_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 if [ "$(echo -e "3.11\n$PYTHON_VER" | sort -V | head -n1)" != "3.11" ]; then
     echo -e "${RED}ERROR: Python 3.11+ is required. Found: $PYTHON_VER${NC}"
+    exit 1
+fi
+
+# venv module is a separate package on Debian/Ubuntu — probe it, don't assume
+if ! python3 -m venv --help &> /dev/null; then
+    echo -e "${RED}ERROR: python3-venv module is missing.${NC}"
+    echo "Install it: sudo apt install -y python3-venv"
     exit 1
 fi
 echo -e "${GREEN}✓ Environment validated successfully.${NC}"
@@ -57,7 +68,7 @@ if [ -d "$STRATA_DIR" ]; then
     fi
 else
     echo "Cloning official Niko1221/Strata engine repository..."
-    git clone https://github.com "$STRATA_DIR"
+    git clone "$STRATA_REPO" "$STRATA_DIR"
     cd "$STRATA_DIR"
     if [ -f "setup.sh" ]; then
         chmod +x setup.sh
@@ -73,13 +84,19 @@ if [ ! -f "$SETTINGS_FILE" ]; then
     echo -e "${YELLOW}Notice: Core engine hardware configurations have not been finalized.${NC}"
     echo "Launching the interactive Strata script to size your VRAM/RAM allocations."
     echo -e "${BLUE}----------------------------------------------------${NC}"
-    
+
+    # always run setup from the engine home, never from wherever
+    # the installer happened to be invoked
+    cd "$STRATA_DIR"
     if [ -f "./setup.sh" ]; then
         ./setup.sh
-    else
+    elif [ -f "setup.py" ]; then
         python3 setup.py
+    else
+        echo -e "${RED}ERROR: no setup.sh or setup.py in $STRATA_DIR.${NC}"
+        exit 1
     fi
-    
+
     echo -e "${BLUE}----------------------------------------------------${NC}"
     echo -e "${GREEN}✓ Engine initial setup concluded.${NC}"
 else
@@ -93,10 +110,14 @@ DECK_DIR="$HOME/strata-deck"
 if [ -d "$DECK_DIR" ]; then
     echo "Updating existing Strata Deck installation..."
     cd "$DECK_DIR"
-    git pull
+    if ! git pull --ff-only; then
+        echo -e "${RED}ERROR: local changes in $DECK_DIR diverge from the repo.${NC}"
+        echo "Resolve them (git status / git stash) and re-run."
+        exit 1
+    fi
 else
     echo "Cloning CamTechLinear/strata-deck interface repository..."
-    git clone https://github.com "$DECK_DIR"
+    git clone "$DECK_REPO" "$DECK_DIR"
     cd "$DECK_DIR"
 fi
 
@@ -105,12 +126,13 @@ echo -e "\n${YELLOW}[5/8] Provisioning Web dashboard virtual runtime...${NC}"
 rm -rf .venv
 python3 -m venv .venv
 "$DECK_DIR"/.venv/bin/pip install --upgrade pip --quiet
-"$DECK_DIR"/.venv/bin/pip install fastapi uvicorn --quiet
+# one source of truth: the repo's pinned requirements.txt
+"$DECK_DIR"/.venv/bin/pip install -r "$DECK_DIR"/backend/requirements.txt --quiet
 echo -e "${GREEN}✓ Isolated dependencies verified.${NC}"
 
 # --- Step 6: Process Management Hooks ---
 echo -e "\n${YELLOW}[6/8] Enabling Linux user space persistence...${NC}"
-loginctl enable-linger "$USER"
+loginctl enable-linger "$(whoami)"
 
 # --- Step 7: Systemd Service Unit Assembly ---
 echo -e "\n${YELLOW}[7/8] Instantiating systemd dashboard service tracking...${NC}"
@@ -169,3 +191,5 @@ if systemctl --user is-active strata-deck.service &> /dev/null; then
 else
     echo -e "${RED}Deployment anomaly: The systemd service encountered runtime faults.${NC}"
     echo "Please debug utilizing: journalctl --user -u strata-deck.service -n 50"
+    exit 1
+fi
