@@ -397,3 +397,35 @@ h2 {
 @media (max-width: 900px) {
   .tuner-grid { grid-template-columns: 1fr; }  /* stack on narrow screens */
 }
+
+/* ---- Scrollbar prettification (uses design tokens) ---- */
+* {
+  scrollbar-width: thin;                  /* Firefox */
+  scrollbar-color: var(--line) var(--bg); /* Firefox: thumb, track */
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-corner {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 6px;
+  border: 2px solid var(--bg); /* inset look: thumb floats in the track */
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* scrollbars inside darker panels track their own background */
+.log { scrollbar-color: var(--line) #0a0f17; }
+.log::-webkit-scrollbar-track { background: #0a0f17; }
+.log::-webkit-scrollbar-thumb { border-color: #0a0f17; }
+textarea, select { scrollbar-color: var(--line) var(--panel2); }
+textarea::-webkit-scrollbar-track { background: var(--panel2); }
+textarea::-webkit-scrollbar-thumb { border-color: var(--panel2); }
