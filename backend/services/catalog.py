@@ -115,13 +115,55 @@ def available_models() -> list[dict]:
         tree = ast.parse(src.read_text())
     except SyntaxError:
         return []
+
+    # module-level literal constants: names setup.py's MODELS dict may
+    # reference (v0.1.45 introduced bare names like NVFP4_GPTQ_REPO,
+    # which plain ast.literal_eval refuses)
+    consts: dict[str, object] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 \
+                and isinstance(node.targets[0], ast.Name):
+            try:
+                consts[node.targets[0].id] = ast.literal_eval(node.value)
+            except ValueError:
+                pass
+
+    def ev(n):
+        """literal_eval plus name refs into module consts, joins, f-strings."""
+        if isinstance(n, ast.Constant):
+            return n.value
+        if isinstance(n, ast.Name):
+            if n.id in consts:
+                return consts[n.id]
+            raise ValueError(f"unknown name {n.id}")
+        if isinstance(n, ast.List):
+            return [ev(e) for e in n.elts]
+        if isinstance(n, ast.Tuple):
+            return tuple(ev(e) for e in n.elts)
+        if isinstance(n, ast.Set):
+            return {ev(e) for e in n.elts}
+        if isinstance(n, ast.Dict):
+            return {ev(k): ev(v) for k, v in zip(n.keys, n.values)}
+        if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Add):
+            return ev(n.left) + ev(n.right)          # literal concat
+        if isinstance(n, ast.JoinedStr):             # f-string
+            parts = []
+            for p in n.values:
+                if isinstance(p, ast.Constant):
+                    parts.append(str(p.value))
+                else:
+                    parts.append(str(ev(p)))
+            return "".join(parts)
+        raise ValueError(type(n).__name__)
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             for t in node.targets:
                 if isinstance(t, ast.Name) and t.id == "MODELS":
                     try:
-                        raw = ast.literal_eval(node.value)
-                    except ValueError:
+                        raw = ev(node.value)
+                    except ValueError as e:
+                        print(f"catalog: MODELS parse failed: {e}")
                         continue
                     out = []
                     for key, v in raw.items():
