@@ -131,6 +131,7 @@ class ConfigReq(BaseModel):
     args: list[str] | None = None
     port: int | None = None
     host: str | None = None
+    gpu: str | None = None      # "0" (single) or "0,1" (dual); Strata format
     max_context: int | None = None
     kv: str | None = None
 
@@ -138,6 +139,26 @@ class ConfigReq(BaseModel):
 @app.put("/api/config/{model}")
 def put_config(model: str, req: ConfigReq):
     return catalog.write_config(model, req.model_dump(exclude_none=True))
+
+
+@app.get("/api/gpus")
+def gpus():
+    """Live GPU inventory: nvidia-smi order is the same order Strata numbers
+    its --gpus by, so index here == index in configs."""
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index,name,memory.total",
+             "--format=csv,noheader"],
+            capture_output=True, text=True, timeout=10).stdout
+        gpus = []
+        for line in out.strip().splitlines():
+            i, name, mem = [s.strip() for s in line.split(",")]
+            gpus.append({"index": int(i), "name": name,
+                         "mem_mib": int(mem.split()[0])})   # "16380 MiB" -> 16380
+        return {"gpus": gpus}
+    except Exception as e:
+        return {"gpus": [], "error": str(e)}
 
 
 # ------------------------------------------------------------------ logs

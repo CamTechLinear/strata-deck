@@ -45,6 +45,7 @@ def installed_models() -> list[dict]:
             "model_name": c.get("model_name", name),
             "port": c.get("port"),
             "host": c.get("host"),
+            "gpu": c.get("gpu"),
             "max_context": _arg_val(args, "--max-context"),
             "kv": _arg_val(args, "--kv"),
             "pack": _arg_val(args, "--pack"),
@@ -79,6 +80,22 @@ def write_config(model: str, updates: dict) -> dict:
 
     # safety backup, mirroring setup.py's own .bak behaviour
     p.with_suffix(".json.bak").write_text(json.dumps(c, indent=4))
+
+    if "gpu" in updates:
+        # Strata's own format: single GPU = int, dual+ = list of ints.
+        # Accept "0" or "0,1" from the tuner.
+        g = updates["gpu"]
+        if isinstance(g, str):
+            parts = [int(x) for x in g.replace(" ", "").split(",") if x != ""]
+        elif isinstance(g, int):
+            parts = [g]
+        elif isinstance(g, list):
+            parts = [int(x) for x in g]
+        else:
+            raise ValueError("gpu must be an int or comma-separated ints")
+        if not parts or any(x < 0 or x > 7 for x in parts):
+            raise ValueError(f"gpu selection out of range: {parts}")
+        c["gpu"] = parts[0] if len(parts) == 1 else parts
 
     if "port" in updates:
         c["port"] = int(updates["port"])

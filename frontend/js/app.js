@@ -229,7 +229,7 @@ async function loadModels() {
     d.innerHTML = `<h4>${c.model} <span class="badge green">Installed</span>
         ${c.stale ? '<span class="badge red">⚠ stale paths</span>' : ""}</h4>
       <div class="badge-row">${badges}</div>
-      <div class="meta">port ${fmt(c.port)} · ctx ${fmtCtx(c.max_context)} · kv ${fmt(c.kv)}</div>
+      <div class="meta">port ${fmt(c.port)} · ${Array.isArray(c.gpu) ? c.gpu.length + " GPUs" : "GPU " + fmt(c.gpu)} · ctx ${fmtCtx(c.max_context)} · kv ${fmt(c.kv)}</div>
       ${staleList}
       <div class="mcard-actions"><button class="btn ${c.stale ? "danger" : "primary"}" data-start="${c.model}" data-stale="${c.stale ? 1 : 0}">Start</button>
       <button class="btn" data-tune="${c.model}">Configure</button>
@@ -370,8 +370,8 @@ const TUNE_PORTS = [8080, 8000, 8081, 8082, 8086, 8888, 5000, 5060, 5080, 5090, 
 async function fillTuner() {
   const model = $("#tune-model").value;
   if (!model) return;
-  const [c, p] = await Promise.all([
-    api("/api/config/" + model), api("/api/ports")]);
+  const [c, p, g] = await Promise.all([
+    api("/api/config/" + model), api("/api/ports"), api("/api/gpus")]);
   // port dropdown: exclude ports in use, EXCEPT this model's own current
   // port (editing the running model's config is legitimate) and 8090 (deck)
   const ps = $("#tune-port");
@@ -403,6 +403,29 @@ async function fillTuner() {
     kvSel.appendChild(o);
   }
   kvSel.value = kv;
+  // GPU selection: built from live hardware (nvidia-smi order == Strata's).
+  // Options: each single GPU, then every pair (largest-VRAM first) when 2+.
+  const gs = $("#tune-gpu");
+  gs.innerHTML = "";
+  const list = [...g.gpus].sort((a, b) => b.mem_mib - a.mem_mib);
+  const addOpt = (val, text) => {
+    const o = document.createElement("option");
+    o.value = val; o.textContent = text;
+    gs.appendChild(o);
+  };
+  const fmtG = (x) => `${x.index}: ${x.name.replace("NVIDIA GeForce ", "")} (${Math.round(x.mem_mib / 1024)} GB)`;
+  for (const x of list) addOpt(String(x.index), fmtG(x));
+  if (list.length >= 2) {
+    // pairs, biggest cards first; index string stays ascending for Strata
+    for (let i = 0; i < list.length; i++)
+      for (let j = i + 1; j < list.length; j++) {
+        const idx = [list[i].index, list[j].index].sort((a, b) => a - b);
+        addOpt(idx.join(","), `${fmtG(list[i])} + ${fmtG(list[j])}`);
+      }
+  }
+  if (g.gpus.length === 0) addOpt(c.gpu == null ? "" : String([].concat(c.gpu).join(",")), "no GPUs detected");
+  const cur = [].concat(c.gpu ?? []).join(",");
+  if ([...gs.options].some((o) => o.value === cur)) gs.value = cur;
   $("#tune-args").value = args.join("\n");
 }
 
@@ -411,6 +434,7 @@ $("#btn-save-config").addEventListener("click", async () => {
   const body = {
     port: +$("#tune-port").value,
     host: $("#tune-host").value,
+    gpu: $("#tune-gpu").value || null,
     max_context: +$("#tune-ctx").value || null,
     kv: $("#tune-kv").value || null,
     args: $("#tune-args").value.split("\n").map((s) => s.trim()).filter(Boolean),
