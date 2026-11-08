@@ -483,3 +483,10 @@ textarea::-webkit-scrollbar-thumb { border-color: var(--panel2); }
 }
 .modal-head h4 { margin: 0; color: var(--accent); }
 #about-body { color: var(--text); font-size: 14px; line-height: 1.55; white-space: pre-line; }
+
+.btn.danger-ghost {
+  color: var(--red);
+  border: 1px solid var(--line);
+  background: transparent;
+}
+.btn.danger-ghost:hover { border-color: var(--red); background: rgba(239,68,68,.08); }

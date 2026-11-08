@@ -233,6 +233,7 @@ async function loadModels() {
       ${staleList}
       <div class="mcard-actions"><button class="btn ${c.stale ? "danger" : "primary"}" data-start="${c.model}" data-stale="${c.stale ? 1 : 0}">Start</button>
       <button class="btn" data-tune="${c.model}">Configure</button>
+      <button class="btn danger-ghost" data-uninstall="${c.model}" title="Remove this model's data from disk">Uninstall</button>
       <button class="badge about" data-about="${c.model}" title="Read the full description">ℹ About</button></div>`;
     cards.push(d);
   }
@@ -269,6 +270,32 @@ async function loadModels() {
   $("#about-modal").addEventListener("click", (e) => {
     if (e.target.id === "about-modal") e.currentTarget.classList.add("hidden");
   });
+
+  g.querySelectorAll("[data-uninstall]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const model = b.dataset.uninstall;
+      let plan;
+      try { plan = await api("/api/uninstall-plan/" + model); }
+      catch (e) { return toast(e.message, true); }
+      if (plan.shared_with.length) {
+        return toast("shared paths with " + plan.shared_with.map(s => s.also_used_by).join(", ") + " — refusing", true);
+      }
+      const gb = (n) => (n / 2 ** 30).toFixed(1) + " GiB";
+      const listing = plan.targets.map(t => `${t.path}  (${gb(t.bytes)})  [${t.why}]`).join("\n");
+      const deckFiles = plan.deck_side.map(f => "  " + f).join("\n");
+      if (!confirm(
+        `Uninstall ${model}?\n\n` +
+        `This deletes ${gb(plan.total_bytes)} of model data:\n\n${listing}\n\n` +
+        `And these Deck/launcher artifacts:\n${deckFiles}\n\n` +
+        `Shared assets (mtp, mmproj, expert-profile) are NOT touched.\n` +
+        `This cannot be undone.`)) return;
+      try {
+        const r = await api("/api/uninstall/" + model, { method: "POST" });
+        if (r.errors.length) toast(`removed ${r.removed.length}, errors: ${r.errors.join("; ")}`, true);
+        else toast(`uninstalled ${model} — freed ${gb(r.freed_bytes)}`);
+        loadModels(); refreshStatus();
+      } catch (e) { toast(e.message, true); }
+    }));
 
   g.querySelectorAll("[data-start]").forEach((b) =>
     b.addEventListener("click", async () => {

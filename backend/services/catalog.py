@@ -6,6 +6,15 @@ import ast
 from pathlib import Path
 
 STRATA_DIR = Path(os.environ.get("STRATA_DIR", str(Path.home() / "Strata")))
+SETTINGS = Path(os.environ.get("STRATA_SETTINGS",
+               str(Path.home() / ".config" / "strata" / "settings.json")))
+
+
+def _settings() -> dict:
+    try:
+        return json.loads(SETTINGS.read_text())
+    except Exception:
+        return {}
 
 # Fallback catalog parsed from setup.py's MODELS dict at import time.
 _AVAILABLE_CACHE: list[dict] | None = None
@@ -60,6 +69,92 @@ def installed_models() -> list[dict]:
 def find_config(model: str) -> str | None:
     cfg = STRATA_DIR / f"strata-{model}.json"
     return str(cfg) if cfg.is_file() else None
+
+
+def _dir_size(p: Path) -> int:
+    total = 0
+    for root, dirs, files in os.walk(p):
+        for f in files:
+            try:
+                total += (Path(root) / f).stat().st_size
+            except OSError:
+                pass
+    return total
+
+
+def uninstall_plan(model: str) -> dict:
+    """What an uninstall WOULD remove: derived from the config's own args
+    (paths drift from names: config iq2_xs -> pack iq2_xs, config q2_0 ->
+    pack q2_0, but swift variants have their own folders). Shared assets
+    (mtp/rt, mmproj, expert-profile) are never listed."""
+    cfg = find_config(model)
+    if not cfg:
+        raise FileNotFoundError(model)
+    c = json.loads(Path(cfg).read_text())
+    args = c.get("args", [])
+    pack = _arg_val(args, "--pack")
+    native = _arg_val(args, "--native")
+
+    data_dir = Path(_settings().get("data_dir", "/mnt/models/Strata-data"))
+    targets, skipped = [], []
+    def add(p, why):
+        if not p:
+            return
+        p = Path(p)
+        if not p.exists():
+            return
+        # jail: only inside the data dir
+        try:
+            p.resolve().relative_to(data_dir.resolve())
+        except ValueError:
+            skipped.append({"path": str(p), "reason": "outside data dir"})
+            return
+        targets.append({"path": str(p.resolve()),
+                        "bytes": _dir_size(p) if p.is_dir() else p.stat().st_size,
+                        "why": why})
+
+    add(pack, "prepared expert pack (--pack)")
+    if native:
+        mdir = Path(native).parent
+        # if --native is a bare file directly in models/, its parent is the
+        # shared models/ dir: then remove only this config's own files
+        if mdir.name.lower() in ("models", "strata-data", "model"):
+            targets.append({"path": str(Path(native).resolve()),
+                            "bytes": Path(native).stat().st_size,
+                            "why": "model files (shared parent dir)"})
+        else:
+            add(mdir, "model files (--native parent)")
+
+    # cross-check: another config pointing at the same target?
+    others = [p for p in STRATA_DIR.glob("strata-*.json")
+              if str(p.resolve()) != str(Path(cfg).resolve())]
+    shared_with = []
+    for o in others:
+        try:
+            oa = json.loads(o.read_text()).get("args", [])
+        except Exception:
+            continue
+        op, on = _arg_val(oa, "--pack"), _arg_val(oa, "--native")
+        opack = Path(op).resolve() if op else None
+        omdir = Path(on).parent.resolve() if on else None
+        for t in targets:
+            tp = Path(t["path"])
+            if (opack and tp == opack) or (omdir and tp == omdir):
+                shared_with.append({"path": t["path"],
+                                    "also_used_by": o.stem[len("strata-"):]})
+
+    deck_side = []
+    for suffix in (".json", ".json.bak", ".log"):
+        f = STRATA_DIR / f"strata-{model}{suffix}"
+        if f.is_file():
+            deck_side.append(str(f))
+    run = STRATA_DIR / f"run-{model}.sh"
+    if run.is_file():
+        deck_side.append(str(run))
+
+    return {"model": model, "targets": targets, "deck_side": deck_side,
+            "shared_with": shared_with,
+            "total_bytes": sum(t["bytes"] for t in targets)}
 
 
 def read_config(model: str) -> dict:

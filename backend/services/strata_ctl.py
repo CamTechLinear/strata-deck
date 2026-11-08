@@ -456,3 +456,47 @@ def tail_log(model: str, lines: int) -> list[str]:
         return data.splitlines()[-lines:]
     except Exception as e:
         return [f"(cannot read log: {e})"]
+
+
+def uninstall_model(model: str, caller: str = "") -> dict:
+    """Delete a model's data + deck-side artifacts, guarded:
+    - refuses if this model's engine is running
+    - refuses if any OTHER config shares a target path
+    - only deletes paths inside data_dir (jail enforced by the plan)
+    Deletion is rm of the exact paths the plan showed the user."""
+    st = engine_status()
+    if st.get("running") and (st.get("process") or {}).get("model") == model:
+        audit("uninstall", caller=caller, decision="denied", model=model,
+              reason="engine running")
+        raise ValueError(f"{model} is the running engine — stop/switch first")
+
+    plan = catalog.uninstall_plan(model)
+    if plan["shared_with"]:
+        who = ", ".join(s["also_used_by"] for s in plan["shared_with"])
+        audit("uninstall", caller=caller, decision="denied", model=model,
+              reason=f"shared paths with {who}")
+        raise ValueError(f"paths shared with other configs ({who}) — aborting")
+
+    removed, errors = [], []
+    for t in plan["targets"]:
+        p = Path(t["path"])
+        try:
+            if p.is_dir():
+                shutil.rmtree(p)
+            else:
+                p.unlink()
+            removed.append(t["path"])
+        except Exception as e:
+            errors.append(f"{t['path']}: {e}")
+    for f in plan["deck_side"]:
+        try:
+            Path(f).unlink()
+            removed.append(f)
+        except Exception as e:
+            errors.append(f"{f}: {e}")
+
+    audit("uninstall", caller=caller, decision="ok" if not errors else "partial",
+          model=model, removed=len(removed), errors=len(errors),
+          freed_bytes=plan["total_bytes"])
+    return {"removed": removed, "errors": errors,
+            "freed_bytes": plan["total_bytes"]}

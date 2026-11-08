@@ -161,6 +161,25 @@ def gpus():
         return {"gpus": [], "error": str(e)}
 
 
+# ------------------------------------------------------------------ uninstall
+@app.get("/api/uninstall-plan/{model}")
+def uninstall_plan(model: str):
+    try:
+        return catalog.uninstall_plan(model)
+    except FileNotFoundError:
+        raise HTTPException(404, "config not found")
+
+
+@app.post("/api/uninstall/{model}")
+def uninstall(model: str, caller: str = ""):
+    try:
+        return ctl.uninstall_model(model, caller=caller or "web")
+    except FileNotFoundError:
+        raise HTTPException(404, "config not found")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
 # ------------------------------------------------------------------ logs
 @app.get("/api/logs/{model}")
 def logs(model: str, lines: int = 200):
