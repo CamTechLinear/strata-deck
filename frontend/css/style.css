@@ -442,7 +442,12 @@ textarea::-webkit-scrollbar-thumb { border-color: var(--panel2); }
 
 /* ---- Models tab: unified card anatomy ---- */
 #models-grid { align-items: stretch; }
+/* wider min column than the dashboard grid: seats Start+Configure+Uninstall
+   on one row (needs ~300px inner incl. button padding) */
+#models-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .mcard { display: flex; flex-direction: column; }
+.mcard h4 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mcard h4 .badge.about { margin-left: auto; }  /* ℹ pins to title right edge */
 .mcard .badge-row { margin-bottom: 8px; min-height: 20px; }
 .mcard .meta { margin-bottom: 8px; }
 .mcard-actions {

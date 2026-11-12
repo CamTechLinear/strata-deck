@@ -227,14 +227,14 @@ async function loadModels() {
       ? `<div class="stale-list">${c.missing_paths.map((p) => `<div class="stale-path">${p.flag} → ${p.path}</div>`).join("")}</div>`
       : "";
     d.innerHTML = `<h4>${c.model} <span class="badge green">Installed</span>
-        ${c.stale ? '<span class="badge red">⚠ stale paths</span>' : ""}</h4>
+        ${c.stale ? '<span class="badge red">⚠ stale paths</span>' : ''}
+        <button class="badge about" data-about="${c.model}" title="About — read the full description">ℹ</button></h4>
       <div class="badge-row">${badges}</div>
       <div class="meta">port ${fmt(c.port)} · ${Array.isArray(c.gpu) ? c.gpu.length + " GPUs" : "GPU " + fmt(c.gpu)} · ctx ${fmtCtx(c.max_context)} · kv ${fmt(c.kv)}</div>
       ${staleList}
       <div class="mcard-actions"><button class="btn ${c.stale ? "danger" : "primary"}" data-start="${c.model}" data-stale="${c.stale ? 1 : 0}">Start</button>
       <button class="btn" data-tune="${c.model}">Configure</button>
-      <button class="btn danger-ghost" data-uninstall="${c.model}" title="Remove this model's data from disk">Uninstall</button>
-      <button class="badge about" data-about="${c.model}" title="About — read the full description">ℹ</button></div>`;
+      <button class="btn danger-ghost" data-uninstall="${c.model}" title="Remove this model's data from disk">Uninstall</button></div>`;
     cards.push(d);
   }
   // catalog entries with no installed variant at all
@@ -243,15 +243,15 @@ async function loadModels() {
     const d = document.createElement("div");
     d.className = "mcard";
     aboutText[a.model] = a.about || "";
-    d.innerHTML = `<h4>${a.model} <span class="badge">not installed</span></h4>
+    d.innerHTML = `<h4>${a.model} <span class="badge">not installed</span>
+      <button class="badge about" data-about="${a.model}" title="About — read the full description">ℹ</button></h4>
       <div class="badge-row">
       ${a.download_gb ? `<span class="badge">${a.download_gb} GB dl</span>` : ""}
       ${a.arena_gb ? `<span class="badge">${a.arena_gb} GB experts</span>` : ""}
       ${a.families.map((f) => `<span class="badge">${f}</span>`).join("")}
       ${a.experimental ? '<span class="badge amber">experimental</span>' : ""}
       ${a.vision ? '<span class="badge green">vision</span>' : ""}</div>
-      <div class="mcard-actions"><button class="btn primary" data-install="${a.model}" data-family="${a.families[0] || "qwen"}">Install…</button>
-      <button class="badge about" data-about="${a.model}" title="About — read the full description">ℹ</button></div>`;
+      <div class="mcard-actions"><button class="btn primary" data-install="${a.model}" data-family="${a.families[0] || "qwen"}">Install…</button></div>`;
     cards.push(d);
   }
   // installed first, then not-installed (Start button = installed marker)
