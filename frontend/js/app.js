@@ -234,7 +234,7 @@ async function loadModels() {
       <div class="mcard-actions"><button class="btn ${c.stale ? "danger" : "primary"}" data-start="${c.model}" data-stale="${c.stale ? 1 : 0}">Start</button>
       <button class="btn" data-tune="${c.model}">Configure</button>
       <button class="btn danger-ghost" data-uninstall="${c.model}" title="Remove this model's data from disk">Uninstall</button>
-      <button class="badge about" data-about="${c.model}" title="Read the full description">ℹ About</button></div>`;
+      <button class="badge about" data-about="${c.model}" title="About — read the full description">ℹ</button></div>`;
     cards.push(d);
   }
   // catalog entries with no installed variant at all
@@ -251,7 +251,7 @@ async function loadModels() {
       ${a.experimental ? '<span class="badge amber">experimental</span>' : ""}
       ${a.vision ? '<span class="badge green">vision</span>' : ""}</div>
       <div class="mcard-actions"><button class="btn primary" data-install="${a.model}" data-family="${a.families[0] || "qwen"}">Install…</button>
-      <button class="badge about" data-about="${a.model}" title="Read the full description">ℹ About</button></div>`;
+      <button class="badge about" data-about="${a.model}" title="About — read the full description">ℹ</button></div>`;
     cards.push(d);
   }
   // installed first, then not-installed (Start button = installed marker)

@@ -450,9 +450,13 @@ textarea::-webkit-scrollbar-thumb { border-color: var(--panel2); }
                                   rows align across uneven cards */
   padding-top: 10px;
   display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap;             /* 4-button rows fold instead of overflowing
+                                  the card edge (width budget, not blame) */
 }
 .badge.about {
   cursor: pointer;
+  min-width: 24px;
+  text-align: center;
   border: 1px solid var(--line);
   background: var(--panel2);
   color: var(--muted);
