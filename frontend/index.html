@@ -95,7 +95,17 @@
             </select>
           </label>
           <label>Context (optional)
-            <input id="inst-context" type="number" placeholder="e.g. 65536">
+            <select id="inst-context">
+              <option value="">default</option>
+              <option value="8192">8K</option>
+              <option value="16384">16K</option>
+              <option value="32768">32K</option>
+              <option value="65536">64K</option>
+              <option value="131072">128K</option>
+              <option value="262144">256K</option>
+              <option value="524288">512K</option>
+              <option value="1048576">1M</option>
+            </select>
           </label>
           <label>Vision
             <select id="inst-vision">
