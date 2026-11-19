@@ -134,6 +134,7 @@ class ConfigReq(BaseModel):
     gpu: str | None = None      # "0" (single) or "0,1" (dual); Strata format
     max_context: int | None = None
     kv: str | None = None
+    env: dict[str, str] | None = None   # STRATA_* launch env overrides
 
 
 @app.put("/api/config/{model}")

@@ -196,6 +196,19 @@ def write_config(model: str, updates: dict) -> dict:
         c["port"] = int(updates["port"])
     if "host" in updates:
         c["host"] = updates["host"]
+    if "env" in updates:
+        # full env replace: STRATA_* only (what the engine actually reads).
+        # An empty dict is a legitimate value: it removes all overrides,
+        # letting the engine's built-in defaults apply per variable.
+        env = updates["env"]
+        if not isinstance(env, dict):
+            raise ValueError("env must be an object of key/value strings")
+        clean = {}
+        for k, v in env.items():
+            if not re.fullmatch(r"STRATA_[A-Z0-9_]+", str(k)):
+                raise ValueError(f"env key must match STRATA_[A-Z0-9_]+ (got {k!r})")
+            clean[str(k)] = str(v)
+        c["env"] = clean
     args = c.get("args", [])
     if updates.get("args") is not None:
         # full args replace: validate every flag starts with --

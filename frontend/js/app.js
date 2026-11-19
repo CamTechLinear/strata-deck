@@ -454,10 +454,118 @@ async function fillTuner() {
   const cur = [].concat(c.gpu ?? []).join(",");
   if ([...gs.options].some((o) => o.value === cur)) gs.value = cur;
   $("#tune-args").value = args.join("\n");
+  renderEnvRows(c.env || {});
 }
+
+/* ---- Env overrides editor (STRATA_* launch environment) ----
+   Presets are curated from ~/Strata/docs/DETAILS.md's env table; values
+   stay free-text because several are numeric dials, not toggles. */
+const ENV_PRESETS = [
+  { k: "STRATA_ROUTE_TAIL_SKIP", v: "0",
+    hint: "skip low-rank experts for +13-16% decode (engine default 7; 0 = off, no skips)" },
+  { k: "STRATA_HC_Q8", v: "1",
+    hint: "Q8 hyper-connection projections: closer to file, faster on Unsloth K-quants" },
+  { k: "STRATA_MMQ_KQ", v: "1",
+    hint: "MMQ prompt kernel library for UD-Q4/5/6 K-quant experts" },
+  { k: "STRATA_PREFILL_CPU_SHARE", v: "0",
+    hint: "CPU's share of prompt prefill (0 = off; engine default on for NVIDIA)" },
+  { k: "STRATA_IQ_MT_MIN", v: "1",
+    hint: "min tokens before IQ* multithreaded prompt path (older-GPU tuning)" },
+  { k: "STRATA_DROP_CACHE_ON_EXIT", v: "1",
+    hint: "free the OS page cache when the engine exits" },
+];
+
+function renderEnvRows(env) {
+  const wrap = $("#tune-env-rows");
+  wrap.innerHTML = "";
+  const keys = Object.keys(env);
+  if (!keys.length) {
+    wrap.innerHTML = '<p class="env-empty">no overrides — engine defaults apply to every flag</p>';
+  }
+  for (const k of keys) addEnvRow(k, env[k]);
+  // preset dropdown: hide what's already on the board
+  const psel = $("#tune-env-preset");
+  psel.innerHTML = "";
+  for (const p of ENV_PRESETS) {
+    if (keys.includes(p.k)) continue;
+    const o = document.createElement("option");
+    o.value = p.k; o.textContent = p.k;
+    psel.appendChild(o);
+  }
+  if (!psel.options.length) { psel.innerHTML = '<option value="">(all presets added)</option>'; }
+}
+
+function addEnvRow(k = "", v = "", custom = false) {
+  const wrap = $("#tune-env-rows");
+  wrap.querySelector(".env-empty")?.remove();
+  const row = document.createElement("div");
+  row.className = "env-row";
+  const preset = ENV_PRESETS.find((p) => p.k === k);
+  const key = document.createElement("input");
+  key.className = "k"; key.value = k; key.placeholder = "STRATA_FLAG";
+  key.spellcheck = false;
+  if (preset) key.title = preset.hint;
+  if (!custom && k && preset) {
+    key.readOnly = true;   // preset rows: key locked, value is the dial
+    key.style.opacity = ".75";
+  }
+  const val = document.createElement("input");
+  val.className = "v"; val.value = v; val.placeholder = "value"; val.spellcheck = false;
+  const hint = document.createElement("span");
+  hint.className = "hint";
+  hint.textContent = preset ? preset.hint : "custom flag — must match STRATA_[A-Z0-9_]+";
+  const del = document.createElement("button");
+  del.className = "del"; del.textContent = "✕"; del.title = "remove (reverts this flag to engine default)";
+  del.addEventListener("click", () => { row.remove(); syncPresetSelect(); });
+  key.addEventListener("input", syncPresetSelect);
+  row.append(key, val, hint, del);
+  wrap.appendChild(row);
+  return { key, val };
+}
+
+function syncPresetSelect() {
+  // rebuild the preset dropdown minus keys currently on the board
+  const have = collectEnv();
+  const psel = $("#tune-env-preset");
+  const cur = psel.value;
+  psel.innerHTML = "";
+  for (const p of ENV_PRESETS) {
+    if (Object.keys(have).includes(p.k)) continue;
+    const o = document.createElement("option");
+    o.value = p.k; o.textContent = p.k;
+    psel.appendChild(o);
+  }
+  if (!psel.options.length) psel.innerHTML = '<option value="">(all presets added)</option>';
+  else if ([...psel.options].some((o) => o.value === cur)) psel.value = cur;
+}
+
+function collectEnv() {
+  const env = {};
+  $$("#tune-env-rows .env-row").forEach((r) => {
+    const k = r.querySelector(".k").value.trim();
+    const v = r.querySelector(".v").value.trim();
+    if (k) env[k] = v;
+  });
+  return env;
+}
+
+$("#btn-env-add").addEventListener("click", () => {
+  const k = $("#tune-env-preset").value;
+  const preset = ENV_PRESETS.find((p) => p.k === k);
+  if (!preset) return;
+  addEnvRow(preset.k, preset.v);
+  syncPresetSelect();
+});
+$("#btn-env-custom").addEventListener("click", () => addEnvRow("", "", true));
 
 $("#btn-save-config").addEventListener("click", async () => {
   const model = $("#tune-model").value;
+  const env = collectEnv();
+  for (const k of Object.keys(env)) {
+    if (!/^STRATA_[A-Z0-9_]+$/.test(k)) {
+      toast(`env key "${k}" invalid — must be STRATA_[A-Z0-9_]+`, true); return;
+    }
+  }
   const body = {
     port: +$("#tune-port").value,
     host: $("#tune-host").value,
@@ -465,6 +573,7 @@ $("#btn-save-config").addEventListener("click", async () => {
     max_context: +$("#tune-ctx").value || null,
     kv: $("#tune-kv").value || null,
     args: $("#tune-args").value.split("\n").map((s) => s.trim()).filter(Boolean),
+    env,
   };
   try {
     await api("/api/config/" + model, { method: "PUT", body: JSON.stringify(body) });

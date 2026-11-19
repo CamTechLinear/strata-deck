@@ -398,6 +398,29 @@ h2 {
   .tuner-grid { grid-template-columns: 1fr; }  /* stack on narrow screens */
 }
 
+/* ---- Env overrides card (spans both columns under the tuner pair) ---- */
+.env-card { grid-column: 1 / -1; }
+.env-quick {
+  display: flex; gap: 10px; align-items: end;
+  margin: 10px 0 14px; flex-wrap: wrap;
+}
+.env-preset-label { flex: 1 1 260px; }
+.env-rows { display: flex; flex-direction: column; gap: 8px; }
+.env-row { display: flex; gap: 8px; align-items: center; }
+.env-row .k { flex: 2 1 240px; font-family: var(--mono, monospace); font-size: 13px; }
+.env-row .v { flex: 1 1 90px; font-family: var(--mono, monospace); font-size: 13px; }
+.env-row .hint {
+  flex: 3 1 300px; color: var(--muted); font-size: 12px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.env-row .del {
+  background: none; border: 1px solid var(--line); color: var(--red);
+  border-radius: 6px; width: 30px; height: 30px; cursor: pointer;
+  flex: 0 0 auto;
+}
+.env-row .del:hover { border-color: var(--red); }
+.env-empty { color: var(--muted); font-size: 13px; }
+
 /* ---- Scrollbar prettification (uses design tokens) ---- */
 * {
   scrollbar-width: thin;                  /* Firefox */

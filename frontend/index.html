@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Strata Deck</title>
-  <link rel="stylesheet" href="/assets/style.css?v=10">
+  <link rel="stylesheet" href="/assets/style.css?v=11">
 </head>
 
 <body>
@@ -153,6 +153,18 @@
             <textarea id="tune-args" rows="22" spellcheck="false"></textarea>
           </label>
         </div>
+        <div class="card env-card">
+          <h3>Env overrides</h3>
+          <p class="muted">STRATA_* launch environment for this model (the <code>"env"</code> block). Anything not listed falls back to the engine's built-in default. Restart the engine to apply.</p>
+          <div class="env-quick">
+            <label class="env-preset-label">Quick add
+              <select id="tune-env-preset"></select>
+            </label>
+            <button id="btn-env-add" class="btn ghost">+ Add flag</button>
+            <button id="btn-env-custom" class="btn ghost">+ Custom key</button>
+          </div>
+          <div id="tune-env-rows" class="env-rows"></div>
+        </div>
       </div>
     </section>
 
@@ -179,7 +191,7 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=13"></script>
+  <script src="/js/app.js?v=14"></script>
 </body>
 
 </html>
